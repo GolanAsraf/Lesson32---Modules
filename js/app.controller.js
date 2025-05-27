@@ -21,6 +21,7 @@ window.app = {
 }
 
 var gPinRemove = null
+var gUserPos = null
 
 function onInit() {
     getFilterByFromQueryParams()
@@ -37,14 +38,17 @@ function onInit() {
 }
 
 function renderLocs(locs) {
+    locs = locs || [] // fallback to empty array if undefined/null
+
     const selectedLocId = getLocIdFromQueryParams()
 
-    var strHTML = locs.map(loc => {
+    const strHTML = locs.map(loc => {
         const className = (loc.id === selectedLocId) ? 'active' : ''
         return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
+                ${gUserPos ? `<span class="distance">(${utilService.getDistance(loc.geo, gUserPos)}KM)</span>` : ''}
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
@@ -58,7 +62,8 @@ function renderLocs(locs) {
                <button title="Edit" onclick="app.onUpdateLoc('${loc.id}')">✏️</button>
                <button title="Select" onclick="app.onSelectLoc('${loc.id}')">🗺️</button>
             </div>     
-        </li>`}).join('')
+        </li>`
+    }).join('')
 
     const elLocList = document.querySelector('.loc-list')
     elLocList.innerHTML = strHTML || 'No locs to show'
@@ -67,7 +72,7 @@ function renderLocs(locs) {
 
     if (selectedLocId) {
         const selectedLoc = locs.find(loc => loc.id === selectedLocId)
-        displayLoc(selectedLoc)
+        if (selectedLoc) displayLoc(selectedLoc)
     }
     document.querySelector('.debug').innerText = JSON.stringify(locs, null, 2)
 }
@@ -154,6 +159,9 @@ function loadAndRenderLocs() {
 function onPanToUserPos() {
     mapService.getUserPosition()
         .then(latLng => {
+            gUserPos = latLng
+            renderLocs()
+            
             mapService.panTo({ ...latLng, zoom: 15 })
             unDisplayLoc()
             loadAndRenderLocs()
