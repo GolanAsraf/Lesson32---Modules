@@ -16,7 +16,11 @@ window.app = {
     onShareLoc,
     onSetSortBy,
     onSetFilterBy,
+    onConfirm,
+    onCancel,
 }
+
+var gPinRemove = null
 
 function onInit() {
     getFilterByFromQueryParams()
@@ -69,6 +73,22 @@ function renderLocs(locs) {
 }
 
 function onRemoveLoc(locId) {
+    showModal(locId)
+}
+
+function showModal(locId) {
+    const elModal = document.querySelector('#confirm-modal')
+    elModal.classList.remove('hidden')
+
+    gPinRemove = locId
+}
+
+function onConfirm() {
+    const locId = gPinRemove
+    const elModal = document.querySelector('#confirm-modal')
+    
+    elModal.classList.add('hidden')
+
     locService.remove(locId)
         .then(() => {
             flashMsg('Location removed')
@@ -79,6 +99,13 @@ function onRemoveLoc(locId) {
             console.error('OOPs:', err)
             flashMsg('Cannot remove location')
         })
+}
+
+function onCancel() {
+    const elModal = document.querySelector('#confirm-modal')
+    elModal.classList.add('hidden')
+
+    gPinRemove = null
 }
 
 function onSearchAddress(ev) {

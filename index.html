@@ -37,7 +37,8 @@
                     <div>
                         <label>
                             Min Rate:
-                            <input name="filter-by-rate" type="range" min="0" max="5" value="0" class="filter-rate-range"
+                            <input name="filter-by-rate" type="range" min="0" max="5" value="0"
+                                class="filter-rate-range"
                                 onchange="this.title=this.value;app.onSetFilterBy({minRate: this.value})" />
                         </label>
                     </div>
@@ -65,6 +66,17 @@
                 </section>
             </section>
         </div>
+
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-content">
+                <p>Are you sure you want to delete?</p>
+                <div class="modal-actions">
+                    <button class="btn-confirm" onclick="app.onConfirm()">Yes</button>
+                    <button class="btn-cancel" onclick="app.onCancel()">No</button>
+                </div>
+            </div>
+        </div>
+
     </main>
     <pre class="debug" hidden></pre>
     <div class="user-msg"></div>
