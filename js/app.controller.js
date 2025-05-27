@@ -18,10 +18,11 @@ window.app = {
     onSetFilterBy,
     onConfirm,
     onCancel,
+    onAddLoc,
+    onCloseLocModal,
 }
 
 var gPinRemove = null
-var gUserPos = null
 
 function onInit() {
     getFilterByFromQueryParams()
@@ -38,17 +39,14 @@ function onInit() {
 }
 
 function renderLocs(locs) {
-    locs = locs || [] // fallback to empty array if undefined/null
-
     const selectedLocId = getLocIdFromQueryParams()
 
-    const strHTML = locs.map(loc => {
+    var strHTML = locs.map(loc => {
         const className = (loc.id === selectedLocId) ? 'active' : ''
         return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
-                ${gUserPos ? `<span class="distance">(${utilService.getDistance(loc.geo, gUserPos)}KM)</span>` : ''}
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
@@ -62,8 +60,7 @@ function renderLocs(locs) {
                <button title="Edit" onclick="app.onUpdateLoc('${loc.id}')">✏️</button>
                <button title="Select" onclick="app.onSelectLoc('${loc.id}')">🗺️</button>
             </div>     
-        </li>`
-    }).join('')
+        </li>`}).join('')
 
     const elLocList = document.querySelector('.loc-list')
     elLocList.innerHTML = strHTML || 'No locs to show'
@@ -72,7 +69,7 @@ function renderLocs(locs) {
 
     if (selectedLocId) {
         const selectedLoc = locs.find(loc => loc.id === selectedLocId)
-        if (selectedLoc) displayLoc(selectedLoc)
+        displayLoc(selectedLoc)
     }
     document.querySelector('.debug').innerText = JSON.stringify(locs, null, 2)
 }
@@ -127,24 +124,51 @@ function onSearchAddress(ev) {
 }
 
 function onAddLoc(geo) {
-    const locName = prompt('Loc name', geo.address || 'Just a place')
-    if (!locName) return
+    openLocModal({ geo })
+}
 
-    const loc = {
-        name: locName,
-        rate: +prompt(`Rate (1-5)`, '3'),
-        geo
+function openLocModal(loc = {}) {
+    const elDialog = document.getElementById('loc-modal')
+    const elForm = document.getElementById('loc-form')
+    elForm.reset()
+
+    // Set form fields for add or update
+    elForm['loc-id'].value = loc.id || ''
+    elForm['loc-name'].value = loc.name || (loc.geo?.address || '')
+    elForm['loc-rate'].value = loc.rate || 3
+    elForm['loc-geo'].value = JSON.stringify(loc.geo || {})
+
+    elDialog.querySelector('.modal-title').innerText = loc.id ? 'Update Location' : 'Add Location'
+    elDialog.showModal()
+
+    elForm.onsubmit = (ev) => {
+        ev.preventDefault()
+        const id = elForm['loc-id'].value
+        const name = elForm['loc-name'].value
+        const rate = +elForm['loc-rate'].value
+        const geo = JSON.parse(elForm['loc-geo'].value)
+
+        if (id) {
+            // Update
+            locService.save({ ...loc, id, name, rate, geo }).then(savedLoc => {
+                flashMsg('Location updated')
+                loadAndRenderLocs()
+                elDialog.close()
+            })
+        } else {
+            // Add
+            locService.save({ name, rate, geo }).then(savedLoc => {
+                flashMsg(`Added Location (id: ${savedLoc.id})`)
+                utilService.updateQueryParams({ locId: savedLoc.id })
+                loadAndRenderLocs()
+                elDialog.close()
+            })
+        }
     }
-    locService.save(loc)
-        .then((savedLoc) => {
-            flashMsg(`Added Location (id: ${savedLoc.id})`)
-            utilService.updateQueryParams({ locId: savedLoc.id })
-            loadAndRenderLocs()
-        })
-        .catch(err => {
-            console.error('OOPs:', err)
-            flashMsg('Cannot add location')
-        })
+}
+
+function onCloseLocModal() {
+    document.getElementById('loc-modal').close()
 }
 
 function loadAndRenderLocs() {
@@ -159,9 +183,6 @@ function loadAndRenderLocs() {
 function onPanToUserPos() {
     mapService.getUserPosition()
         .then(latLng => {
-            gUserPos = latLng
-            renderLocs()
-            
             mapService.panTo({ ...latLng, zoom: 15 })
             unDisplayLoc()
             loadAndRenderLocs()
@@ -176,20 +197,7 @@ function onPanToUserPos() {
 function onUpdateLoc(locId) {
     locService.getById(locId)
         .then(loc => {
-            const rate = prompt('New rate?', loc.rate)
-            if (rate && rate !== loc.rate) {
-                loc.rate = rate
-                locService.save(loc)
-                    .then(savedLoc => {
-                        flashMsg(`Rate was set to: ${savedLoc.rate}`)
-                        loadAndRenderLocs()
-                    })
-                    .catch(err => {
-                        console.error('OOPs:', err)
-                        flashMsg('Cannot update location')
-                    })
-
-            }
+            openLocModal(loc)
         })
 }
 

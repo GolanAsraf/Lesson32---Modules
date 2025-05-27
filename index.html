@@ -73,6 +73,26 @@
             </section>
         </div>
 
+        <dialog id="loc-modal">
+            <form method="dialog" id="loc-form">
+                <h3 class="modal-title">Add / Update Location</h3>
+                <input type="hidden" name="loc-id" />
+                <input type="hidden" name="loc-geo" />
+                <label>
+                    Name:
+                    <input type="text" name="loc-name" required />
+                </label>
+                <label>
+                    Rate:
+                    <input type="number" name="loc-rate" min="1" max="5" required />
+                </label>
+                <div class="modal-actions">
+                    <button value="cancel" type="button" onclick="app.onCloseLocModal()">Cancel</button>
+                    <button value="default" type="submit">Save</button>
+                </div>
+            </form>
+        </dialog>
+        
         <div id="confirm-modal" class="modal hidden">
             <div class="modal-content">
                 <p>Are you sure you want to delete?</p>
